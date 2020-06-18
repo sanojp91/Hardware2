@@ -1,0 +1,96 @@
+
+import time
+import board
+import digitalio
+import neopixel
+
+try:
+    from audiocore import WaveFile
+except ImportError:
+    from audioio import WaveFile
+
+try:
+    from audioio import AudioOut
+except ImportError:
+    try:
+        from audiopwmio import PWMAudioOut as AudioOut
+    except ImportError:
+        pass  # not always supported by every board!
+
+#  The neopixel lights on the board
+pixels = neopixel.NeoPixel(board.NEOPIXEL, 10, brightness=0.1)
+
+# Enable the speaker
+speaker_enable = digitalio.DigitalInOut(board.SPEAKER_ENABLE)
+speaker_enable.direction = digitalio.Direction.OUTPUT
+speaker_enable.value = True
+
+# Enable the two pushbuttons
+button_a = digitalio.DigitalInOut(board.BUTTON_A)
+button_a.direction = digitalio.Direction.INPUT
+button_a.pull = digitalio.Pull.DOWN
+
+button_b = digitalio.DigitalInOut(board.BUTTON_B)
+button_b.direction = digitalio.Direction.INPUT
+button_b.pull = digitalio.Pull.DOWN
+
+# switch
+switch = digitalio.DigitalInOut(board.SLIDE_SWITCH)
+switch.direction = digitalio.Direction.INPUT
+switch.pull = digitalio.Pull.UP
+
+# different coloured lights to show when audio is playing
+def colourLight(wait):
+    PURPLE = (255, 0, 255)
+    BLACK = (0, 0, 0)
+    CYAN = (0, 255, 255)
+    ORANGE = (255, 255, 0)
+
+    for i in range(len(pixels)):
+        pixels[i] = PURPLE
+        time.sleep(wait)
+    for i in range(len(pixels)):
+        pixels[i] = CYAN
+        time.sleep(wait)
+    for i in range(len(pixels)):
+        pixels[i] = ORANGE
+        time.sleep(wait)
+    for i in range(len(pixels)):
+        pixels[i] = BLACK
+        time.sleep(wait)
+
+# The 2 audio files
+audiofiles = ["loop1.wav", "loop2.wav"]
+
+audio = AudioOut(board.SPEAKER)
+
+
+def play_file(filename):
+    print("playing file " + filename)
+    file = open(filename, "rb")
+    wavef = WaveFile(file)
+    audio.play(wavef)
+    while audio.playing:
+        colourLight(.02)
+    time.sleep(0.1)
+
+while True:
+
+    if switch.value:
+
+        # left button
+        if button_a.value:
+
+            play_file(audiofiles[0])
+
+        # right button
+        elif button_b.value:
+
+            play_file(audiofiles[1])
+
+    else:
+        # if button a is pressed just output the lights and no sound
+        if button_a.value:
+
+            colourLight(0.2)
+            time.sleep(0.1)
